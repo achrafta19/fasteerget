@@ -1,0 +1,13 @@
+# A copy kept at root for Fly.io's docker builder to read; the build context
+# starts at the project root.
+node_modules
+.next
+.git
+.env
+.env.*
+!.env.example
+desktop/node_modules
+desktop/release
+npm-debug.log*
+*.tsbuildinfo
+.DS_Store

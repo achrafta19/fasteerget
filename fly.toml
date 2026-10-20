@@ -1,0 +1,45 @@
+# Fly.io configuration for BLS Vanguard
+# Docs: https://fly.io/docs/reference/configuration/
+
+app = "bls-vanguard"
+primary_region = "mad"   # Madrid (also try: fra, cdg, ams)
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  PORT = "3000"
+  NODE_ENV = "production"
+  BLS_MODE = "simulation"
+  BLS_API_BASE_URL = "https://bls.dz"
+  BLS_LOGIN_PATH = "/api/auth/login"
+  BLS_SLOTS_PATH = "/api/appointment/slots"
+  BLS_BOOK_PATH = "/api/appointment/book"
+  BLS_TIMEOUT_MS = "12000"
+  BLS_CAPTCHA_TIMEOUT_MS = "120000"
+
+[http_service]
+  internal_port = 3000
+  force_https = true
+  auto_stop_machines = false      # engine tick must run 24/7
+  auto_start_machines = true
+  min_machines_running = 1
+  processes = ["app"]
+
+  [http_service.concurrency]
+    type = "connections"
+    hard_limit = 25
+    soft_limit = 20
+
+  [[http_service.checks]]
+    interval = "30s"
+    timeout = "5s"
+    grace_period = "20s"
+    method = "GET"
+    path = "/api/health"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "512mb"
+  cpu_kind = "shared"
+  cpus = 1

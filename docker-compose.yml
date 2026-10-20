@@ -1,0 +1,68 @@
+# BLS Vanguard — full stack for a VPS.
+#   docker compose up -d --build
+#   docker compose exec app npx drizzle-kit push
+#
+# Three services:
+#   db      PostgreSQL 16 (persistent volume)
+#   app     the Next.js console + booking API  → http://SERVER_IP:3000
+#   ticker  the permanent booking server: one /api/engine/tick per minute
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: vanguard
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change-me-now}
+      POSTGRES_DB: vanguard
+    volumes:
+      - vanguard_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U vanguard -d vanguard"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://vanguard:${POSTGRES_PASSWORD:-change-me-now}@db:5432/vanguard
+      # simulation | live
+      BLS_MODE: ${BLS_MODE:-simulation}
+      BLS_API_BASE_URL: ${BLS_API_BASE_URL:-https://bls.dz}
+      BLS_LOGIN_PATH: ${BLS_LOGIN_PATH:-/api/auth/login}
+      BLS_SLOTS_PATH: ${BLS_SLOTS_PATH:-/api/appointment/slots}
+      BLS_BOOK_PATH: ${BLS_BOOK_PATH:-/api/appointment/book}
+      BLS_SESSION_COOKIE: ${BLS_SESSION_COOKIE:-}
+      BLS_ACCOUNT_EMAIL: ${BLS_ACCOUNT_EMAIL:-}
+      BLS_ACCOUNT_PASSWORD: ${BLS_ACCOUNT_PASSWORD:-}
+      BLS_CENTER_ID: ${BLS_CENTER_ID:-}
+      BLS_TIMEOUT_MS: ${BLS_TIMEOUT_MS:-12000}
+      BLS_CAPTCHA_TIMEOUT_MS: ${BLS_CAPTCHA_TIMEOUT_MS:-120000}
+      ENGINE_SECRET: ${ENGINE_SECRET:-change-me-too}
+    ports:
+      - "${APP_PORT:-3000}:3000"
+
+  ticker:
+    image: alpine:3.20
+    restart: unless-stopped
+    depends_on:
+      - app
+    environment:
+      ENGINE_SECRET: ${ENGINE_SECRET:-change-me-too}
+      OPERATOR_ID: ${ENGINE_OPERATOR_ID:-1}
+    # Runs forever: one tick every 60s. The engine itself decides whether the
+    # Algiers release window is open and skips otherwise.
+    command: >
+      sh -c "apk add --no-cache curl >/dev/null 2>&1;
+      while true; do
+        curl -fsS -X POST -H \"x-engine-secret: $$ENGINE_SECRET\"
+          \"http://app:3000/api/engine/tick?operatorId=$$OPERATOR_ID\" >/dev/null 2>&1 || true;
+        sleep 60;
+      done"
+
+volumes:
+  vanguard_pgdata:

@@ -1,0 +1,58 @@
+# ---------- dependencies ----------
+node_modules/
+.pnp
+.pnp.js
+desktop/node_modules/
+
+# ---------- build output ----------
+.next/
+out/
+build/
+dist/
+*.tsbuildinfo
+next-env.d.ts
+
+# ---------- environment & secrets — NEVER COMMIT ----------
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+secrets/
+credentials/
+
+# ---------- logs ----------
+*.log
+logs/
+npm-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# ---------- database ----------
+*.sql
+*.sql.gz
+*.dump
+backups/
+pgdata/
+
+# ---------- testing ----------
+coverage/
+.nyc_output/
+
+# ---------- desktop build output ----------
+desktop/release/
+desktop/dist/
+
+# ---------- editors / OS ----------
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+*.swp
+*~
+
+# ---------- temporary archives ----------
+*.tar.gz
+*.zip
